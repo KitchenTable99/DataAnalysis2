@@ -1,0 +1,164 @@
+\documentclass[12pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[title]{appendix}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage[breaklinks]{hyperref}
+\hypersetup{colorlinks=true, linkcolor=Black, citecolor=Black, filecolor=Blue,
+urlcolor=Blue, unicode=true}
+
+\usepackage{scalerel,stackengine}
+\stackMath
+\newcommand\reallywidehat[1]{%
+\savestack{\tmpbox}{\stretchto{%
+  \scaleto{%
+    \scalerel*[\widthof{\ensuremath{#1}}]{\kern-.6pt\bigwedge\kern-.6pt}%
+    {\rule[-\textheight/2]{1ex}{\textheight}}%WIDTH-LIMITED BIG WEDGE
+  }{\textheight}% 
+}{0.5ex}}%
+\stackon[1pt]{#1}{\tmpbox}%
+}
+\parskip 1ex
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+
+\title{Metabolism Statistical Investigation}
+\author{Statistical Modeling\\
+        (SC 321)\vspace{1em}\\
+        Caleb Bitting + Sophia Szady\\
+}
+\date{Spring, 2022}
+
+\maketitle
+
+\section{Introduction}
+A group of thirty adults, consisting of eighteen females and twelve males, were studied in order to determine the relationship between gastric activity and alcohol metabolism. Each participant was given two doses of ethanol, one intravenous and one oral, and their blood alcohol concentrations were measured after the doses. The amount of ethanol administered to each individual was based on the proportion to their weight. The resulting gastric activity was measured through the activity of an enzyme in micromoles per minute per gram (micromols/min/g) of tissue and alcohol metabolism was measured in millimoles per liter per hour (millimols/liter-hour). The purpose of our analysis is to determine whether there is a relationship between gastric activity and metabolism, and whether other factors such as sex or age have an impact.
+
+\section{Data Cleaning}
+  \begin{table}[H]
+    \centering
+    \begin{tabular}{c|c|p{.5\linewidth}}
+        Variable &  Type & Description \\ \hline
+        \textit{Metabolism} & Numeric & Metabolism was measured by subsequently comparing blood alcohol concentrations after ethanol had been administered once intravenously and once orally. \\ \hline
+        \textit{Gastric Activity} & Numeric & Gastric activity represents the activity of an important enzyme measured in micromols/min/g of tissue. \\ \hline
+        \textit{Age} & Factor & The age of the subject. \\ \hline
+        \textit{Sex} & Factor & The sex of the subject. There are two-levels to this factor variable: male and female.
+    \end{tabular}
+    \caption{Variable Description}
+    \label{t:var}
+  \end{table}
+  \par As shown in Table 1, our data contain two numeric and two factor variables. Examining the data reveals that neither \textit{Gastric Activity} nor \textit{Metabolism} are normally distributed. We apply a square-root transformation to \textit{Metabolism} to create \textit{Sqrt. Metabolism} (\textit{SM}). We apply a natural-log transformation to \textit{Gastric Activity} to create \textit{Log. Gastric Activity} (\textit{LGA}). The two new variables are roughly normally distributed and will allow us to perform linear regression. Furthermore, there appears to be no correlation between age and either of the transformed variables. The transformations are displayed in Figure 1. 
+\begin{figure}[H]
+  \centering
+<<echo=F, fig=T>>=
+data <- read.csv("~/Downloads/metabolism.csv")
+data$sqrtmetabol <- data$metabol ^ .5
+data$lngastric <- log(data$gastric)
+par(mfrow=c(2,2))  # this line makes a 2x2 grid of plots
+# plot metabolism
+hist(data$metabol,
+     main="Metabolism", xlab="Metabolism")
+# plot transformed metabolism
+hist(data$sqrtmetabol,
+     main="Sqrt. Metabolism", xlab="Sqrt. Metabolism")
+
+# plot 
+hist(data$gastric,
+     main="Gastric Activity", xlab="Gastric Activity")
+hist(data$lngastric,
+     main="Log Gastric Activity", xlab="Log Gastric Activity")
+@
+  \caption{Variable Transformations}
+\end{figure}
+  
+\section{Methods}
+Both simple and multiple linear regression models will be used to model the relationships between \textit{LGA} and \textit{SM} as well as the inclusion of variables sex and age. We will look at models both including and excluding indicator variables as well as interaction terms. In order to choose the final model, we will look individual p-values to decide if the model can be simplified and the $R^2_{adj}$ of the resulting model to decide if it should be. All analyses were performed using the software package R. 
+
+\section{Results}
+  Figure 2 shows that there is no clear pattern based on sex in looking at the relationship between \textit{LGA} and \textit{SM}. Additionally looking at a range of models including interaction variables, the inclusion of sex, age, and both, as well as the simple linear model of metabolism and gastric activity we determined that the best model is the simple linear regression.
+\begin{figure}[H]
+\centering
+<<echo=F, fig=T>>=
+shapes <- c(16, 17)
+shapes <- shapes[as.numeric(as.factor(data$sex))]
+
+colors <- c("#00AFBB", "#E7B800")
+colors <- colors[as.numeric(as.factor(data$sex))]
+
+plot(data$lngastric ~ data$sqrtmetabol,
+     xlab="Log. Gastric", ylab="Sqrt. Metabolism",
+     pch=shapes, col=colors)
+legend("topleft", legend=c("Female", "Male"),
+       col=c("#00AFBB", "#E7B800"),
+       pch=c(16, 17))
+@
+\caption{Scatterplot by Sex}
+\end{figure}
+
+Table 2 shows that eliminating additional variables increases the $R^2_{adj}$ and statistical significance. Therefore we concluded that the only variables that have a statistically significant relationship are \textit{LGA} and \textit{SM}. 
+  
+  \begin{table}[H]
+    \centering
+    \begin{tabular}{c|c|c}
+        Predictors & p-value & $R^2_{adj}$  \\ \hline
+        ALL & .01939 & .2888 \\ \hline
+        -Interaction Sex:\textit{SM} & .008196 & .3169 \\ \hline
+        -Interaction Age:\textit{SM} & .002915 & .3426 \\ \hline
+        -Indicator Age & .0008872 & .3618\\ \hline
+        -Indicator Sex & .0002882 & .3576
+    \end{tabular}
+    \caption{Backwards Elimination of Predictors Resulting in Final Model}
+  \end{table}
+
+\section{Discussion}
+In order to fit the best model to predict \textit{LGA}, we started with a full model. As predictor variables our starting model included \textit{SM}, an indicator variable for \textit{Age}, an indicator for \textit{Sex}, an interaction term between \textit{Age} and \textit{SM}, and an interaction term between \textit{Sex} and \textit{SM}. In order to reach our final model, we found a non-significant p-value for an interaction term, removed it, and checked the resultant $R^2_{adj}$ to ensure that it increased. Once both interaction terms were removed, we proceed to remove the indicator variables by the same method. The model best fit our data was a simple linear regression relating \textit{LGA} to \textit{SM}. The equation for the model is given by,
+\begin{equation}
+\large
+\reallywidehat{Gastric} = .914e^{.42\sqrt{Metabolism}}
+\end{equation}
+\par In future research external factors that determine the individuals gastric activity such as exercise, and presence of gastrointestinal tract issues. The current model is limited to additional factors such as age and sex that didn’t show any clear relationship based on the sample, and therefore there may be other explanatory variables. 
+\par The most important conclusion to make from our analysis is that there is significant evidence for a relationship between \textit{LGA} and \textit{SM}. It doesn’t vary based on sex and is not dependent or vary based on age. Model parsimony ends up being the best option.  
+ 
+
+\newpage
+\begin{appendices}
+\section{}
+Figure 1 used the histogram method in R to compare the distribution of the data for each variable. Table 2 used the summary method of the multiple linear regressions in order to find the p-value and adjusted r squared for each model. \\
+\textbf{Final Model:}
+\begin{enumerate}
+  \item \textit{Plotting the Data:} 2 quantitative variables means that it’s appropriate to use a scatter plot.
+  \item \textit{Linearity:} The scatterplot for \textit{LGA} and \textit{SM} in Figure 3 appears to have a slightly positive linear relationship, although perhaps not very strong. Thus, a linear model is appropriate in this context.
+
+  \item \textit{Independence:} Each participant is assumed to be independent, although it is not explicitly stated how the individuals were chosen. Therefore, it will be assumed that no subject is related and that the independence condition it met.
+  
+  \item \textit{Normality:} The normal probability plot to the right shows a fairly normal distribution, except for slight deviation on each end. However, this is a small sample and so we cannot be sure whether or not it is really normal and the deviation is not large enough or for a large group of points. Thus, we will proceed with a linear model.
+  \item \textit{Equal:} The residual vs fitted plot in Figure 3 shows a roughly random distribution of residuals, indicating the linear model is a good fit because it has captured most of the pattern in the data. 
+  \item \textit{Simple Random Sample:} It is not explicitly stated that the subjects were chosen randomly for this experiment, so it will be assumed that they were. Therefore, it is okay to proceed with a linear model. 
+\end{enumerate}
+\begin{figure}[H]
+\centering
+<<echo=F, fig=T>>=
+par(mfrow=c(2,2))
+plot(data$sqrtmetabol ~ data$lngastric,
+     main="Scatterplot of LGA and SM", xlab="LGA", ylab="SM")
+
+full.lm <- lm(data$sqrtmetabol ~ data$lngastric)
+qqnorm(full.lm$residuals)
+qqline(full.lm$residuals)
+
+plot(data$sqrtmetabol, full.lm$residuals,
+     main="Residuals v Fitted", xlab="Residuals", ylab="Fitted")
+abline(0,0, col="blue")
+@
+\caption{Diagnostic Plots}
+\end{figure}
+
+\section{R Code}
+All of the code (LaTeX and R) used to generate this document is attached to the Moodle submission.
+\end{appendices}
+
+\end{document}
